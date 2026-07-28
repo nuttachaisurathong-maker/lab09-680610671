@@ -2,14 +2,15 @@ import express, { type Request, type Response } from "express";
 
 // import middlewares
 import morgan from "morgan";
-import invalidJsonMiddleware from "./middlewares/invalidJsonMiddleware.ts";
-import notFoundMiddleware from "./middlewares/notFoundMiddleware.ts";
+import invalidJsonMiddleware from "./middlewares/invalidJsonMiddleware.js";
+import notFoundMiddleware from "./middlewares/notFoundMiddleware.js";
 
 // import routes
-import studentRouter_v2 from "./routes/studentsRoutes_v2.ts";
-import studentRouter_v3 from "./routes/studentsRoutes_v3.ts";
-import courseRouter_v2 from "./routes/coursesRouters_v2.ts";
-import userRoutes from "./routes/usersRoutes.ts";
+import studentRouter_v2 from "./routes/studentsRoutes_v2.js";
+import studentRouter_v3 from "./routes/studentsRoutes_v3.js";
+import courseRouter_v2 from "./routes/coursesRouters_v2.js";
+import userRoutes from "./routes/usersRoutes.js";
+import enrollmentsRoutes_v2 from "./routes/enrollmentsRoutes_v2.js";
 
 const app = express();
 const port = 3000;
@@ -29,11 +30,25 @@ app.get("/", (req: Request, res: Response) => {
   res.send("Lecture09 API services");
 });
 
+app.get("/api/me", (req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: "Student Information",
+    "data": {
+      "studentId": "680610671",
+      "firstName": "Nuttachai",
+      "lastName": "Surathong",
+      "program": "CPE",
+      "section": "001",
+    }
+  });
+});
 
 app.use("/api/v2/students", studentRouter_v2);
 app.use("/api/v3/students", studentRouter_v3);
 app.use("/api/v2/courses", courseRouter_v2);
-app.use("/api/v2/users", userRoutes)
+app.use("/api/v2/users", userRoutes);
+app.use("/api/v2/enrollments", enrollmentsRoutes_v2);
 
 // endpoint check middleware
 app.use(notFoundMiddleware);

@@ -2,10 +2,11 @@ import { Router, type Request, type Response } from "express";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 dotenv.config();
-
-import type { User, UserPayload, CustomRequest } from "../libs/types.ts";
+import { zStudentId, zCourseId } from "../libs/zodValidators.js";
+import type { User, UserPayload, CustomRequest, Student, Course, Enrollment } from "../libs/types.ts";
 
 // import database
+import { enrollments, students, courses } from "../db/db.js";
 import { users, reset_users } from "../db/db.js";
 import { success } from "zod";
 import { count } from "node:console";
@@ -14,7 +15,7 @@ import { fa } from "zod/v4/locales";
 
 const router = Router();
 
-// POST /api/v2/users/login
+// POST /api/v2/enrollments/login
 router.post("/login", (req: Request, res: Response) => {
   // 1. get username and password from body
   const {username, password} = req.body;
@@ -41,7 +42,8 @@ router.post("/login", (req: Request, res: Response) => {
   },
   jwt_secrat,
   { expiresIn: "30m"}
-);
+  );
+
   //    (optional: save the token as part of User data)
 
   // 4. send HTTP response with JWT token
@@ -53,61 +55,184 @@ router.post("/login", (req: Request, res: Response) => {
 
 });
 
-// GET /api/v2/users
-router.get("/", (req: Request, res: Response) => {
-  
-  const authHeader = req.headers["authorization"]
-  if(!authHeader || !authHeader.startsWith("Bearer")){
-    return res.status(401).json({
-      success: false,
-      message: "Authorization header is required"
-    })
-  }
-  
-  console.log(authHeader);
-  const token = authHeader.split(" ")[1]
-
-  if(token === null){
-      return res.status(401).json({
-      success: false,
-      message: "Token is required"
-    })
-  }
-
-  const jwt_secrat = process.env.JWT_SECRET || "this_is _my_secret";
-  jwt.verify(token, jwt_secrat, (err, payload) =>{
-    if(err){
-      return res.status(403).json({
-        success: false,
-        message: "Invalid or expired token"
-      });
-    }
-
-    //find user by paylond
-    const user_payload = payload as UserPayload;
-    const user = users.find((u) => u.username === user_payload.username)
-
-    if  (!user || user.role !== "ADMIN"){
-        return res.status(401).json({
-        success: false,
-        message: "Unauthorized user"
-      });
-    }
-
-  })
-
+// POST /api/v2/enrollments
+router.post("/", (req: Request, res: Response) => {
   try {
-    // return all users
-    return res.json({
-      success: true,
-      data: users,
-    });
+    const authHeader = req.headers["authorization"];
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Authorization header is required",
+      });
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Token is required",
+      });
+    }
+
+    const jwt_secret = process.env.JWT_SECRET || "this_is _my_secret";
+    const payload = jwt.verify(token, jwt_secret) as UserPayload;
+
+    const user = users.find((u) => u.username === payload.username);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized user",
+      });
+    }
+    if (user.role === "ADMIN") {
+      return res.status(403).json({
+        ok: true,
+        message: "Only students can access this API route",
+      });
+    }
+    const { courseId } = req.body;
   } catch (err) {
-    return res.status(200).json({
+    return res.status(403).json({
       success: false,
-      message: "Something is wrong, please try again",
+      message: "Invalid or expired token",
       error: err,
     });
   }
 });
 
+// GET /api/v2/enrollments
+router.get("/", (req: Request, res: Response) => {
+  try {
+    // 1. get the Authorization header from the request
+    const authHeader = req.headers["authorization"];
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Authorization header is required",
+      });
+    }
+    // 2. extract the token from the Authorization header
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Token is required",
+      });
+    }
+
+    const jwt_secret = process.env.JWT_SECRET || "this_is _my_secret";
+    const payload = jwt.verify(token, jwt_secret) as UserPayload;
+
+    const user = users.find((u) => u.username === payload.username);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized user",
+      });
+    }
+
+    if (user.role === "ADMIN") {
+      return res.status(200).json({
+        ok: true,
+        enrollments: enrollments,
+      });
+    }
+
+    if (user.role === "STUDENT") {
+      const studentEnrollments = enrollments.filter(
+        (e) => e.studentId === user.studentId
+      );
+      return res.status(200).json({
+        success: true,
+        data: studentEnrollments,
+      });
+    }
+
+    return res.status(403).json({
+      success: false,
+      message: "Forbidden access",
+    });
+
+  } catch (err) {
+    return res.status(403).json({
+      success: false,
+      message: "Invalid or expired token",
+      error: err,
+    });
+  }
+});
+
+// DELETE /api/v2/enrollments
+router.delete("/", (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers["authorization"];
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Authorization header is required",
+      });
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Token is required",
+      });
+    }
+
+    const jwt_secret = process.env.JWT_SECRET || "this_is _my_secret";
+    const payload = jwt.verify(token, jwt_secret) as UserPayload;
+
+    const user = users.find((u) => u.username === payload.username);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized user",
+      });
+    }
+
+    if (user.role === "ADMIN") {
+      return res.status(403).json({
+        success: false,
+        message: "Admin cannot perform this action", //  ใช้ message เดียวกับข้อ POST รูปที่ 2
+      });
+    }
+
+    const { courseNo } = req.body;
+
+    if (!courseNo) {
+      return res.status(400).json({
+        success: false,
+        message: "courseNo is required",
+      });
+    }
+
+    const index = enrollments.findIndex(
+      (e) => e.studentId === user.studentId && ((e as any).courseNo === courseNo || e.courseId === courseNo)
+    );
+
+    if (index === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Enrollment not found",
+      });
+    }
+
+    enrollments.splice(index, 1);
+
+    return res.status(200).json({
+      ok: true,
+      message: "You have dropped from this course. See you next semester.", 
+    });
+
+  } catch (err) {
+    return res.status(403).json({
+      success: false,
+      message: "Invalid or expired token",
+      error: err,
+    });
+  }
+});
+
+export default router;
