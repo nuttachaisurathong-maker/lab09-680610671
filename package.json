@@ -18,7 +18,6 @@
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@10.0.0",
   "type": "module",
   "dependencies": {
     "approve-builds": "^1.0.0",
