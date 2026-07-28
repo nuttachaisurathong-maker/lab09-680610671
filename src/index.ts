@@ -9,6 +9,7 @@ import notFoundMiddleware from "./middlewares/notFoundMiddleware.ts";
 import studentRouter_v2 from "./routes/studentsRoutes_v2.ts";
 import studentRouter_v3 from "./routes/studentsRoutes_v3.ts";
 import courseRouter_v2 from "./routes/coursesRouters_v2.ts";
+import userRoutes from "./routes/usersRoutes.ts";
 
 const app = express();
 const port = 3000;
@@ -32,6 +33,7 @@ app.get("/", (req: Request, res: Response) => {
 app.use("/api/v2/students", studentRouter_v2);
 app.use("/api/v3/students", studentRouter_v3);
 app.use("/api/v2/courses", courseRouter_v2);
+app.use("/api/v2/users", userRoutes)
 
 // endpoint check middleware
 app.use(notFoundMiddleware);
