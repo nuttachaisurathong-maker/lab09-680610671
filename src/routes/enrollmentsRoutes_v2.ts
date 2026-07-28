@@ -102,6 +102,9 @@ router.post("/", (req: Request, res: Response) => {
 
 // GET /api/v2/enrollments
 router.get("/", (req: Request, res: Response) => {
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
   try {
     // 1. get the Authorization header from the request
     const authHeader = req.headers["authorization"];
@@ -164,6 +167,9 @@ router.get("/", (req: Request, res: Response) => {
 
 // DELETE /api/v2/enrollments
 router.delete("/", (req: Request, res: Response) => {
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
   try {
     const authHeader = req.headers["authorization"];
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
