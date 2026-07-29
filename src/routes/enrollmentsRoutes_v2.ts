@@ -121,7 +121,7 @@ router.get("/", (req: Request, res: Response) => {
       });
     }
 
-    const jwt_secret = process.env.JWT_SECRET || "this_is_a_secret_key_for_jwt";
+    const jwt_secret = "this_is_a_secret_key_for_jwt";
     const payload = jwt.verify(token, jwt_secret) as UserPayload;
 
     const user = users.find((u) => u.username === payload.username);
